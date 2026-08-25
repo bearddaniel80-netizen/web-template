@@ -1,0 +1,146 @@
+services:
+
+  # ==========================================================
+  # CADDY
+  #
+  # The ONLY container exposed to the Internet.
+  # ==========================================================
+
+  caddy:
+    build: ./caddy
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+    networks:
+      - public
+
+
+  # ==========================================================
+  # REACT
+  #
+  # Not exposed to the Internet.
+  # Caddy talks to it internally.
+  # ==========================================================
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runtime
+
+    networks:
+      - public
+
+
+  # ==========================================================
+  # NODE.JS BFF
+  #
+  # Browser -> Node -> FastAPI
+  #
+  # Node is NOT publicly exposed.
+  # ==========================================================
+
+  node:
+    build:
+      context: ./node
+      target: runtime
+
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      FASTAPI_URL: http://fastapi:8000
+
+    secrets:
+      - fastapi_internal_key
+
+    networks:
+      - public
+      - backend
+
+
+  # ==========================================================
+  # FASTAPI
+  #
+  # Completely private.
+  # ==========================================================
+
+  fastapi:
+    build:
+      context: ./fastapi
+      target: runtime
+
+    environment:
+      ENVIRONMENT: production
+
+    secrets:
+      - fastapi_internal_key
+
+    networks:
+      - backend
+
+  # ==========================================================
+  # PLAYWRIGHT
+  #
+  # Run manually:
+  #
+  # docker compose up -d --build
+  # docker compose --profiles test run --rm playwright
+  # ==========================================================
+
+  playwright:
+    profiles:
+      - test
+
+    image: mcr.microsoft.com/playwright:v1.62.0-noble
+
+    working_dir: /tests
+
+    environment:
+      BASE_URL: https://${DOMAIN}
+
+    volumes:
+      - ./tests:/tests
+
+    ipc: host
+
+    networks:
+      - public
+
+    command: npx playwright test
+
+
+# ============================================================
+# NETWORKS
+# ============================================================
+
+networks:
+
+  # Caddy <-> React
+  # Caddy <-> Node
+  public:
+
+  # Node <-> FastAPI
+  backend:
+
+
+# ============================================================
+# VOLUMES
+# ============================================================
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+
+# ============================================================
+# SECRETS
+# ============================================================
+secrets:
+  fastapi_internal_key:
+    file: ./secrets/fastapi_internal_key.txt
