@@ -1,3 +1,17 @@
+x-secrets: &secrets-default
+    secrets:
+      - fastapi_internal_key
+      - minio_app_user
+      - minio_app_password
+
+x-public-networks: &public-network
+    networks:
+      - public
+
+x-private-networks: &private-network
+    networks:
+      - backend
+
 services:
 
   # ==========================================================
@@ -7,6 +21,9 @@ services:
   # ==========================================================
 
   caddy:
+    networks:
+      - public
+
     build: ./caddy
 
     ports:
@@ -18,8 +35,6 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
-    networks:
-      - public
 
 
   # ==========================================================
@@ -30,39 +45,104 @@ services:
   # ==========================================================
 
   frontend:
-    build:
-      context: ./frontend
-      target: runtime
-
     networks:
       - public
+
+    build:
+      context: ./frontend
+      target: ${TARGET}
 
 
   # ==========================================================
   # NODE.JS BFF
   #
   # Browser -> Node -> FastAPI
+  # or
+  # Browser -> Node -> MiniO -> FastAPI
   #
   # Node is NOT publicly exposed.
   # ==========================================================
 
   node:
+    <<: *secrets-default
     build:
       context: ./node
-      target: runtime
+      target: ${TARGET}
 
     environment:
-      NODE_ENV: production
-      PORT: 4000
+      NODE_ENV: ${ENVIRONMENT}
       FASTAPI_URL: http://fastapi:8000
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
-    secrets:
-      - fastapi_internal_key
+    ports:
+      - "4000"
 
     networks:
       - public
       - backend
 
+  # ==========================================================
+  # MiniO
+  #
+  # Used to upload and download data/source files
+  # Completely private.
+  # ==========================================================
+
+  minio:
+    image: quay.io/minio/minio:latest
+
+    command: server /data --console-address ":9001"
+
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_root_user
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+
+    secrets:
+      - minio_root_user
+      - minio_root_password
+
+    volumes:
+      - ./minio/data:/data
+
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - backend
+      
+  # ==========================================================
+  # MiniO
+  #
+  # Ran once to add user policy.
+  # ==========================================================
+
+  minio-init:
+    <<: *private-network
+    image: minio/mc:latest
+
+    depends_on:
+      minio:
+        condition: service_healthy
+
+    secrets:
+      - minio_root_user
+      - minio_root_password
+      - minio_app_user
+      - minio_app_password
+
+    volumes:
+      - ./minio/init-minio.sh:/init-minio.sh:ro
+      - ./minio/policy.json:/policy.json:ro
+    
+    environment:
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+
+    entrypoint:  ["/bin/sh", "/init-minio.sh"]
 
   # ==========================================================
   # FASTAPI
@@ -71,18 +151,19 @@ services:
   # ==========================================================
 
   fastapi:
+    <<: [*secrets-default, *private-network]
     build:
       context: ./fastapi
-      target: runtime
+      target: ${TARGET}
+
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
 
     environment:
-      ENVIRONMENT: production
-
-    secrets:
-      - fastapi_internal_key
-
-    networks:
-      - backend
+      ENVIRONMENT: ${ENVIRONMENT}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
   # ==========================================================
   # PLAYWRIGHT
@@ -126,6 +207,8 @@ networks:
   public:
 
   # Node <-> FastAPI
+  # Node <-> MiniO
+  # FastAPI <-> MiniO
   backend:
 
 
@@ -137,10 +220,17 @@ volumes:
   caddy_data:
   caddy_config:
 
-
 # ============================================================
 # SECRETS
 # ============================================================
 secrets:
   fastapi_internal_key:
     file: ./secrets/fastapi_internal_key.txt
+  minio_root_password:
+    file: ./secrets/minio_root_password.txt
+  minio_root_user:
+    file: ./secrets/minio_root_user.txt  
+  minio_app_password:
+    file: ./secrets/minio_app_password.txt
+  minio_app_user:
+    file: ./secrets/minio_app_user.txt

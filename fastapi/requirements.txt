@@ -1,2 +1,8 @@
+# framework
 fastapi
+
+# prod server
 uvicorn[standard]
+
+# file upload / download storage
+minio

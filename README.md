@@ -79,6 +79,23 @@ openssl rand -hex 32
 ```
 
 ---
+## Network Flow
+
+```text
+                  PUBLIC
+        ┌───────────┼───────────┐
+        │           │           │
+      Caddy      frontend     MinIO
+        │                       │
+        │                       │
+        └───────────────────────┘
+
+                  BACKEND
+        ┌───────────┼───────────┐
+        │           │           │
+       Node      FastAPI       MinIO
+```
+---
 
 ## System Flow
 
