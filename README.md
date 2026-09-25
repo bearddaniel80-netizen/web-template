@@ -27,7 +27,7 @@ curl -ikL localhost/api/data
 
 ### Run playwrite tests
 ```bash
-docker compose up -d --build && docker compose --profiles test run --rm playwrite
+docker compose --profile test up
 ```
 
 ### Stop services

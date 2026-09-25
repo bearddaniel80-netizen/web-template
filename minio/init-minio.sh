@@ -22,14 +22,14 @@ echo "Creating policy..."
 mc admin policy create \
   minio \
   uploads-policy \
-  /policy.json || true
+  /policy.json
 
 echo "Creating application user..."
 
 mc admin user add \
   minio \
   "${APP_USER}" \
-  "${APP_PASSWORD}" || true
+  "${APP_PASSWORD}"
 
 echo "Attaching policy..."
 

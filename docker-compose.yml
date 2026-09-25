@@ -90,7 +90,7 @@ services:
   # ==========================================================
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
 
     command: server /data --console-address ":9001"
 
@@ -103,7 +103,7 @@ services:
       - minio_root_password
 
     volumes:
-      - ./minio/data:/data
+      - minio_data:/data
 
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
@@ -123,7 +123,7 @@ services:
 
   minio-init:
     <<: *private-network
-    image: minio/mc:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
 
     depends_on:
       minio:
@@ -171,7 +171,7 @@ services:
   # Run manually:
   #
   # docker compose up -d --build
-  # docker compose --profiles test run --rm playwright
+  # docker compose --profile test up
   # ==========================================================
 
   playwright:
@@ -219,6 +219,7 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  minio_data:
 
 # ============================================================
 # SECRETS
