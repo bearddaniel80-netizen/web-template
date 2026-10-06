@@ -182,6 +182,10 @@ services:
 
     working_dir: /tests
 
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
     environment:
       BASE_URL: https://${DOMAIN}
 
@@ -193,7 +197,7 @@ services:
     networks:
       - public
 
-    command: npx playwright test
+    command: npm install && npx playwright test
 
 
 # ============================================================
