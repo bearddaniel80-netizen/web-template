@@ -1,7 +1,4 @@
 from .security.api_key_check import verify_internal_key
-from .routers.manifest import router as manifest_router
-from .routers.suite import router as suite_router
-from .routers.tag import router as tag_router
 from .routers.minio import router as minio_router
 
 from fastapi import FastAPI, Header
@@ -26,9 +23,6 @@ app.add_middleware(
 # --------------------------------------------------
 
 app.include_router(minio_router)
-app.include_router(manifest_router)
-app.include_router(suite_router)
-app.include_router(tag_router)
 
 @app.get("/health")
 async def health():
