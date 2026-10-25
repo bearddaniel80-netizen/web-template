@@ -1,7 +1,10 @@
-# web-template
+# web-compliance
 
 ## Description
-A secured api/frontend for the AQL platform. 
+A secured api/frontend for the AQL
+Compliance Framework.
+A web interface that uses current AQL, Aegis Link, and Compliance projects
+to validate and profile AQL sources.
 
 ---
 
@@ -99,12 +102,16 @@ openssl rand -hex 32
 
 ## System Flow
 
-```text
-Frontend
-  ↓
-Caddy
-  ↓
-Node
-  ↓
-FastAPI
+```mermaid
+flowchart TB
+    %% Application Architecture
+    node_0["Browser"]
+    node_1["Frontend"]
+    node_0 --> node_1
+    node_2["Caddy"]
+    node_1 --> node_2
+    node_3["Node"]
+    node_2 --> node_3
+    node_4["FastAPI"]
+    node_3 --> node_4
 ```
