@@ -1,14 +1,24 @@
-# web-compliance
+# web-template
 
 ## Description
 A secured api/frontend for the AQL
-Compliance Framework.
-A web interface that uses current AQL, Aegis Link, and Compliance projects
-to validate and profile AQL sources.
+Framework.
 
 ---
 
 ## To run
+
+```bash
+# copy your real files over the placeholders first
+cp ./minio/init-minio.sh stack/files/init-minio.sh
+cp ./minio/policy.json   stack/files/policy.json
+
+helm install myapp ./stack \
+  --set minio.bucket=YOUR_BUCKET \
+  --set secrets.fastapiInternalKey=... \
+  --set secrets.minioAppUser=... --set secrets.minioAppPassword=... \
+  --set secrets.minioRootUser=... --set secrets.minioRootPassword=...
+```
 
 ### Start services
 ```bash
